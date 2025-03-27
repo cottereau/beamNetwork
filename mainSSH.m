@@ -1,7 +1,7 @@
 % description of the unit cell
 alpha = 0;
 Xref = [0 0; 1 sin(alpha);2 0]*15e-3;
-T = [1 2; 2 3]; % two diagonals
+T = [1 2; 2 3]; 
 
 % physical and geometrical parameters of the links
 E = 15.3e6;
@@ -15,8 +15,8 @@ Fmax = 1500; % max frequency for transmission analysis
 
 % discretization parameters
 nRep = 0;  % number of doubling of the unit cell
-nk = 100;  % number of wave numbers
-n = 10;    % number of elements for each link
+nk = 30;  % number of wave numbers
+n = 5;    % number of elements for each link
 nm = 18;  % number of modes to be computed at each wavenumber
 nwf = 500;% number of frequencies for the transmission analysis
 
@@ -47,7 +47,7 @@ pbc = leftRightPairs(Xref);
 % I need to construct element-by-element scalar product in order to use
 % simply the perturbation formula
 [Kref,Mref,Xgref] = matrixNetwork('beam',Xref,T,n,E,rho,S,Im);
-[k,wref,vref] = blochAnalysis(Mref,Kref,Lx,pbc,nk,nm);
+[k,wref,vref] = blochAnalysis(Mref,Kref,Xgref,Lx,pbc,nk,nm);
 bgref = plotDispersionCurveNetwork(wref,vref,[],k,cp,cb);
 %plotNetwork(0,Xref,T,real(vref(:,2,4)),k(10))
 

@@ -24,8 +24,8 @@ Fmax = 3000; % max frequency for transmission analysis
 
 % discretization parameters
 nRep = 5;  % number of doubling of the unit cell
-nk = 100;  % number of wave numbers
-n = 3;    % number of elements for each link
+nk = 30;  % number of wave numbers
+n = 5;    % number of elements for each link
 nm = 300;  % number of modes to be computed at each wavenumber
 nwf = 500;% number of frequencies for the transmission analysis
 
@@ -47,17 +47,16 @@ pbc = leftRightPairs(Xref);
 % I need to construct element-by-element scalar product in order to use
 % simply the perturbation formula
 [Kref,Mref,Xgref] = matrixNetwork('beam',Xref,T,n,E,rho,S,Im);
-[k,wref,vref] = blochAnalysis(Mref,Kref,Lx,pbc,nk,nm);
+[k,wref,vref] = blochAnalysis(Mref,Kref,Xgref,Lx,pbc,nk,nm);
 bgref = plotDispersionCurveNetwork(wref,vref,[],k,cp,cb);
 %plotNetwork(0,Xref,T,real(vref(:,2,4)),k(10))
 
 % transmission analysis in frequency for the unperturbed cell
 [Utref,wtref] = transmissionAnalysis(Kref,Mref,Xgref,Lx,Fmax,nwf);
 % mark in grey shade the potential band gaps
-figure; semilogy(wref/2/pi,abs(Utref))
+figure; semilogy(wtref/2/pi,Utref)
 addBandGaps(bgref,Utref)
 
-return
 % perturbing the network
 dX = 0.0*2*(rand(size(Xref))-1/2)*5e-3;
 X = Xref;
@@ -69,10 +68,10 @@ dPsi = (L-L0)./L0;
 
 % Bloch analysis of the perturbed cell
 [K,M,Xg,Tg,indT] = matrixNetwork('beam',X,T,n,E,rho,S,Im);
-[k,w0,v0] = blochAnalysis(M,K,Lx,pbc,nk,nm);
+[k,w0,v0] = blochAnalysis(M,K,Xg,Lx,pbc,nk,nm);
 bg = plotDispersionCurveNetwork(w0,v0,[],k,cp,cb);
 
 % transmission analysis in frequency for the perturbed cell
 [Ut,wt] = transmissionAnalysis(K,M,Xgref,Lx,Fmax,nwf);
-figure;semilogy(wt/2/pi,abs(Ut))
+figure;semilogy(wt/2/pi,Ut)
 addBandGaps(bg,Ut)
