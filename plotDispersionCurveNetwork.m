@@ -1,4 +1,4 @@
-function bg = plotDispersionCurveNetwork(w,v,AB,kx,cp,cb)
+function bg = plotDispersionCurveNetwork(w,v,M,AB,kx,cp,cb)
 
 % remove end points
 % w = w(:,2:end-1);
@@ -9,8 +9,8 @@ function bg = plotDispersionCurveNetwork(w,v,AB,kx,cp,cb)
 for i1 = 1:length(kx)-1
     v1 = v(:,:,i1);
     v2 = v(:,:,i1+1);
-    mac = abs(v1'*v2)./sqrt(diag(v1'*v1).*diag(v2'*v2)');
-    mac(abs(mac)<0.7) = 0;
+    mac = abs(v1'*M*v2);%./sqrt(diag(v1'*M*v1).*diag(abs(v2'*M*v2))');
+    mac(abs(mac)<0.5) = 0;
     [Q,~] = qr(mac);
     [~,ind] = max(abs(Q),[],1);
     v(:,ind,i1+1) = v(:,:,i1+1);

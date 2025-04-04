@@ -1,7 +1,7 @@
 % description of the unit cell
-alpha = 0;
+alpha = pi/4;
 Xref = [0 0; 1 sin(alpha);2 0]*15e-3;
-T = [1 2; 2 3]; 
+Tref = [1 2; 2 3]; 
 
 % physical and geometrical parameters of the links
 E = 15.3e6;
@@ -11,24 +11,23 @@ S = pi*r^2;
 Im = pi*r^4/4;
 cp = sqrt(E/rho);
 cb = sqrt(E*Im/rho/S);
-Fmax = 1500; % max frequency for transmission analysis
+Fmax = 5000; % max frequency for transmission analysis
 
 % discretization parameters
-nRep = 0;  % number of doubling of the unit cell
-nk = 30;  % number of wave numbers
-n = 5;    % number of elements for each link
-nm = 18;  % number of modes to be computed at each wavenumber
-nwf = 500;% number of frequencies for the transmission analysis
+nRep = 4;  % number of doubling of the unit cell
+nk = 30;   % number of wave numbers
+n = 50;   % number of elements for each link
+nm = 30;   % number of modes to be computed at each wavenumber
+nwf = 500; % number of frequencies for the transmission analysis
 
 % repeating the unit cell
-[Xref,T] = doubleNetwork(nRep,Xref,T,[max(Xref(:,1))-min(Xref(:,1)) 0]);
-Lx = max(Xref(T(:),1))-min(Xref(T(:),1));
-Ly = max(Xref(T(:),2))-min(Xref(T(:),2));
+Lx = max(Xref(Tref(:),1))-min(Xref(Tref(:),1));
+[X,T] = doubleNetwork(nRep,Xref,Tref,[max(Xref(:,1))-min(Xref(:,1)) 0]);
 
 % boundary conditions
 indLeft = Xref(:,1)==min(Xref(:,1));
 indLeftRight = (Xref(:,1)==min(Xref(:,1))) | (Xref(:,1)==max(Xref(:,1)));
-[~,~,ic] = unique(T(:));
+[~,~,ic] = unique(Tref(:));
 Tcounts = accumarray(ic,1);
 indCross = Tcounts>2 | (Tcounts>1&indLeftRight);
 indMove = indCross&~indLeftRight;
@@ -44,25 +43,21 @@ pbc = leftRightPairs(Xref);
 % dPsi = (L-L0)./L0;
 % 
 % Bloch analysis of the unperturbed cell
-% I need to construct element-by-element scalar product in order to use
-% simply the perturbation formula
-[Kref,Mref,Xgref] = matrixNetwork('beam',Xref,T,n,E,rho,S,Im);
+[Kref,Mref,Xgref] = matrixNetwork('beam',Xref,Tref,n,E,rho,S,Im);
 [k,wref,vref] = blochAnalysis(Mref,Kref,Xgref,Lx,pbc,nk,nm);
-bgref = plotDispersionCurveNetwork(wref,vref,[],k,cp,cb);
+bgref = plotDispersionCurveNetwork(wref,vref,Mref,[],k,cp,cb);
 %plotNetwork(0,Xref,T,real(vref(:,2,4)),k(10))
 
-% transmission analysis in frequency for the unperturbed cell
-[Utref,wref] = transmissionAnalysis(Kref,Mref,Xgref,Lx,Fmax,nwf);
-% mark in grey shade the potential band gaps
-figure; semilogy(wref/2/pi,abs(Utref))
-addBandGaps(bgref,Utref)
+% transmission analysis in frequency for the full length model
+[K,M,Xg] = matrixNetwork('beam',X,T,n,E,rho,S,Im);
+% [Ut,wt] = transmissionAnalysis(K,M,Xg,Lx,Fmax,nwf);
+% % mark in grey shade the potential band gaps
+% figure; semilogy(wt/2/pi,abs(Ut))
+% addBandGaps(bgref,Ut)
 
-% % Bloch analysis of the perturbed cell
-% [K,M,Xg,Tg,indT] = matrixNetwork('beam',X,T,n,E,rho,S,Im);
-% [k,w0,v0] = blochAnalysis(M,K,Lx,pbc,nk,nm);
-% bg = plotDispersionCurveNetwork(w0,v0,[],k,cp,cb);
-% 
-% % transmission analysis in frequency for the perturbed cell
-% [Ut,wt] = transmissionAnalysis(K,M,Xgref,Lx,Fmax,nwf);
-% figure;semilogy(wt/2/pi,abs(Ut))
-% addBandGaps(bg,Ut)
+% eigenvalue analysis of the full length model
+[v,d] = eigs(K,M,1000,1);
+w = sqrt(abs(diag(d)));
+hold on; scatter(pi/Lx,w/2/pi,'k')
+set(gca,'ylim',[0 5000],'xlim',[0 pi/Lx])
+
