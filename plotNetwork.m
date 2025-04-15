@@ -1,8 +1,10 @@
 function plotNetwork(n,X,T,def,k,coef)
 
 % constants
-if nargin<=4 || isempty(def) 
+if nargin<4 || isempty(def) 
     def = zeros(size(X,1)*3,1);
+end
+if nargin<5 || isempty(k) 
     k = 0;
     backstyle = '-k';
 else
@@ -41,11 +43,11 @@ for i2 = 1:Nm
     % plot deformed configuration
     for i1 = 1:Ne
         Te = T(i1,:);
-        plot(X(Te,1)+u(Te),X(Te,2)+v(Te),'-kx','linewidth',2);
+        plot(X(Te,1)+u(Te),X(Te,2)+v(Te),'-bx','linewidth',2);
     end
 
 end
 
 Lx = max(X(:,1))-min(X(:,1));
 Ly = max(X(:,2))-min(X(:,2));
-set(gca,'visible','off','PlotBoxAspectRatio',[Lx Ly 1]);
+%set(gca,'visible','off','PlotBoxAspectRatio',[Lx Ly 1]);
