@@ -10,11 +10,11 @@ r = 0.75e-3;
 S = pi*r^2;
 Im = pi*r^4/4;
 cp = sqrt(E/rho);
-cb = sqrt(E*Im/rho/S);
+cb = (E*Im/rho/S)^1/4;
 Fmax = 5000; % max frequency for transmission analysis
 
 % discretization parameters
-nRep = 4;  % number of doubling of the unit cell
+nRep = 5;  % number of doubling of the unit cell
 nk = 30;   % number of wave numbers
 n = 50;   % number of elements for each link
 nm = 30;   % number of modes to be computed at each wavenumber
@@ -44,7 +44,7 @@ pbc = leftRightPairs(Xref);
 % 
 % Bloch analysis of the unperturbed cell
 [Kref,Mref,Xgref] = matrixNetwork('beam',Xref,Tref,n,E,rho,S,Im);
-[k,wref,vref] = blochAnalysis(Mref,Kref,Xgref,Lx,pbc,nk,nm);
+[k,wref,vref] = blochAnalysis(Mref,Kref,Lx,pbc,nk,nm);
 bgref = plotDispersionCurveNetwork(wref,vref,Mref,[],k,cp,cb);
 %plotNetwork(0,Xref,T,real(vref(:,2,4)),k(10))
 
@@ -60,4 +60,6 @@ bgref = plotDispersionCurveNetwork(wref,vref,Mref,[],k,cp,cb);
 w = sqrt(abs(diag(d)));
 hold on; scatter(pi/Lx,w/2/pi,'k')
 set(gca,'ylim',[0 5000],'xlim',[0 pi/Lx])
+plotNetwork(0,X,T,real(v(:,193)))
+plotNetwork(0,X,T,real(v(:,194)))
 

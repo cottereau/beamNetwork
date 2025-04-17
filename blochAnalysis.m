@@ -1,4 +1,4 @@
-function [k,w,v] = blochAnalysis(M,K,X,L,pbc,nk,nm)
+function [k,w,v] = blochAnalysis(M,K,L,pbc,nk,nm)
 
 % define wavenumbers
 k = linspace(0,pi/L,nk);
@@ -24,7 +24,7 @@ for i1 = 1:nk
     %     v2 = zeros(Nq+2,1); v2(2:3:end,1) = 1;
     %     vv = [v1 v2 [zeros(2,nm-2);vv]];
     % else
-        [vv,d] = eigs(Kq,Mq,nm,'smallestabs',tolerance=1e-5);
+        [vv,d] = eigs(Kq,Mq,nm,'smallestabs',tolerance=1e-6);
         d = diag(d);
 %    end
     vv = Q*vv;

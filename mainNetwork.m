@@ -18,15 +18,13 @@ S = b*r;        % square section
 Im = b*r^3/12;    % square inertia 
 % S = pi*r^2;     % circular section
 % Im = pi*r^4/4;  % circular inertia
-cp = sqrt(E/rho);
-cb = sqrt(E*Im/rho/S);
 Fmax = 3000; % max frequency for transmission analysis
 
 % discretization parameters
 nRep = 5;  % number of doubling of the unit cell
 nk = 30;  % number of wave numbers
 n = 5;    % number of elements for each link
-nm = 300;  % number of modes to be computed at each wavenumber
+nm = 100;  % number of modes to be computed at each wavenumber
 nwf = 500;% number of frequencies for the transmission analysis
 
 % repeating the unit cell
@@ -44,34 +42,67 @@ indMove = indCross&~indLeftRight;
 pbc = leftRightPairs(Xref);
 
 % Bloch analysis of the unperturbed cell
-% I need to construct element-by-element scalar product in order to use
-% simply the perturbation formula
-[Kref,Mref,Xgref] = matrixNetwork('beam',Xref,T,n,E,rho,S,Im);
-[k,wref,vref] = blochAnalysis(Mref,Kref,Xgref,Lx,pbc,nk,nm);
-bgref = plotDispersionCurveNetwork(wref,vref,[],k,cp,cb);
-%plotNetwork(0,Xref,T,real(vref(:,2,4)),k(10))
+[Kref,Mref,Xgref,Tgref,~,dKr,dKl,dMr,dMl,indg] = matrixNetwork('beam',Xref,T,n,E,rho,S,Im);
+[k,wref,vref] = blochAnalysis(Mref,Kref,Lx,pbc,nk,nm);
+bgref = plotDispersionCurveNetwork(wref,vref,Mref,[],k);
 
-% transmission analysis in frequency for the unperturbed cell
-[Utref,wtref] = transmissionAnalysis(Kref,Mref,Xgref,Lx,Fmax,nwf);
-% mark in grey shade the potential band gaps
-figure; semilogy(wtref/2/pi,Utref)
-addBandGaps(bgref,Utref)
+% % transmission analysis in frequency for the unperturbed cell
+% [Utref,wtref] = transmissionAnalysis(Kref,Mref,Xgref,Lx,Fmax,nwf);
+% figure; semilogy(wtref/2/pi,Utref)
+% addBandGaps(bgref,Utref)
 
 % perturbing the network
-dX = 0.0*2*(rand(size(Xref))-1/2)*5e-3;
-X = Xref;
-X(indMove,:) = X(indMove,:)+dX(indMove,:);
-plotNetwork(0,X,T)
 L0 = vecnorm(Xref(T(:,1),:)-Xref(T(:,2),:),2,2);
+dX = 0.1*2*(rand(size(Xref))-1/2)*mean(L0(:));
+dX(~indMove,:) = 0;
+X = Xref+dX;
+%plotNetwork(0,X,T)
 L = vecnorm(X(T(:,1),:)-X(T(:,2),:),2,2);
-dPsi = (L-L0)./L0;
 
 % Bloch analysis of the perturbed cell
 [K,M,Xg,Tg,indT] = matrixNetwork('beam',X,T,n,E,rho,S,Im);
-[k,w0,v0] = blochAnalysis(M,K,Xg,Lx,pbc,nk,nm);
-bg = plotDispersionCurveNetwork(w0,v0,[],k,cp,cb);
+[~,w0,v0] = blochAnalysis(M,K,Lx,pbc,nk,nm);
+bg = plotDispersionCurveNetwork(w0,v0,M,[],k);
 
-% transmission analysis in frequency for the perturbed cell
-[Ut,wt] = transmissionAnalysis(K,M,Xgref,Lx,Fmax,nwf);
-figure;semilogy(wt/2/pi,Ut)
-addBandGaps(bg,Ut)
+% % transmission analysis in frequency for the perturbed cell
+% [Ut,wt] = transmissionAnalysis(K,M,Xgref,Lx,Fmax,nwf);
+% figure;semilogy(wt/2/pi,Ut)
+% addBandGaps(bg,Ut)
+
+% analytical estimation of perturbed dispersion curve
+dL = dot(dX(T(:,1),:)-dX(T(:,2),:),Xref(T(:,1),:)-Xref(T(:,2),:),2)./(L0.^2);
+dL = reshape(dL,[1 1 length(dL)]);
+dphi = cross2(Xref(T(:,1),:)-Xref(T(:,2),:),dX(T(:,1),:)-dX(T(:,2),:),2)./(L0.^2);
+dphi = reshape(dphi,[1 1 length(dphi)]);
+dK = dKr.*dphi + dKl.*dL;
+dM = dMr.*dphi + dMl.*dL;
+dw = zeros(nm,nk);
+for i1 = 1:nk
+    vdKv = real(proj2(vref(:,:,i1),dK,vref(:,:,i1),indg));
+    vdMv = real(proj2(vref(:,:,i1),dM,vref(:,:,i1),indg));
+    dw(:,i1) = (vdKv-((wref(:,i1).^2).*vdMv))./(2*wref(:,i1));
+end
+[w0(:,10)-wref(:,10) dw(:,10)]
+% for i1 = [1 nk]
+%     i1
+%     indrep = find(diff(wref(:,i1))<1e-3*mean(diff(wref(:,i1))));
+%     v1dKv1 = real(proj2(vref(:,indrep,i1),dK,vref(:,indrep,i1),indg));
+%     v1dKv2 = real(proj2(vref(:,indrep,i1),dK,vref(:,indrep+1,i1),indg));
+%     v2dKv2 = real(proj2(vref(:,indrep+1,i1),dK,vref(:,indrep+1,i1),indg));
+%     v1dMv1 = real(proj2(vref(:,indrep,i1),dM,vref(:,indrep,i1),indg));
+%     v1dMv2 = real(proj2(vref(:,indrep,i1),dM,vref(:,indrep+1,i1),indg));
+%     v2dMv2 = real(proj2(vref(:,indrep+1,i1),dM,vref(:,indrep+1,i1),indg));
+%     theta = 2*(v1dKv2-wref(indrep,i1).^2.*v1dMv2) ...
+%                    ./((v1dKv1-v2dKv2)-wref(indrep,i1).^2.*(v1dMv1-v2dMv2));
+%     theta = atan(theta);
+%     dw(indrep,i1) = (cos(theta).^2.*(v1dKv1-wref(indrep,i1).^2.*v1dMv1) ...
+%                     +sin(theta).^2.*(v2dKv2-wref(indrep,i1).^2.*v2dMv2) ...
+%        +2*cos(theta).*sin(theta).*(v1dKv2-wref(indrep,i1).^2.*v1dMv2)) ...
+%                                                      ./(2*wref(indrep,i1));
+%     dw(indrep+1,i1) = (sin(theta).^2.*(v1dKv1-wref(indrep,i1).^2.*v1dMv1) ...
+%                     +cos(theta).^2.*(v2dKv2-wref(indrep,i1).^2.*v2dMv2) ...
+%        -2*cos(theta).*sin(theta).*(v1dKv2-wref(indrep,i1).^2.*v1dMv2)) ...
+%                                                      ./(2*wref(indrep,i1));
+% end
+plotDispersionCurveNetwork(wref+dw,vref,M,[],k);
+
