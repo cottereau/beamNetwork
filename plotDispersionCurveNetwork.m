@@ -50,7 +50,7 @@ for i1 = 1:size(bg,1)
 end
 
 % add marks for homogenized velocities
-if nargin>4
+if nargin>5
     xk = linspace(0,mk,100);
     hold on; plot(xk,(cp/2/pi)*xk,'--k')
     hold on; plot(xk,(cb/2/pi)*xk.^2,'--k')
