@@ -22,9 +22,9 @@ Fmax = 3000; % max frequency for transmission analysis
 
 % discretization parameters
 nRep = 5;  % number of doubling of the unit cell
-nk = 30;  % number of wave numbers
-n = 5;    % number of elements for each link
-nm = 100;  % number of modes to be computed at each wavenumber
+nk = 50;  % number of wave numbers
+n = 20;    % number of elements for each link
+nm = 15;  % number of modes to be computed at each wavenumber
 nwf = 500;% number of frequencies for the transmission analysis
 
 % repeating the unit cell
@@ -53,11 +53,15 @@ bgref = plotDispersionCurveNetwork(wref,vref,Mref,[],k);
 
 % perturbing the network
 L0 = vecnorm(Xref(T(:,1),:)-Xref(T(:,2),:),2,2);
-dX = 0.1*2*(rand(size(Xref))-1/2)*mean(L0(:));
+dX = 0.05*2*(rand(size(Xref))-1/2)*mean(L0(:));
 dX(~indMove,:) = 0;
 X = Xref+dX;
-%plotNetwork(0,X,T)
 L = vecnorm(X(T(:,1),:)-X(T(:,2),:),2,2);
+dL = dot(dX(T(:,1),:)-dX(T(:,2),:),Xref(T(:,1),:)-Xref(T(:,2),:),2)./(L0.^2);
+dL = reshape(dL,[1 1 length(dL)]);
+dphi = cross2(Xref(T(:,1),:)-Xref(T(:,2),:),dX(T(:,1),:)-dX(T(:,2),:),2)./(L0.^2);
+dphi = reshape(dphi,[1 1 length(dphi)]);
+%plotNetwork(0,X,T)
 
 % Bloch analysis of the perturbed cell
 [K,M,Xg,Tg,indT] = matrixNetwork('beam',X,T,n,E,rho,S,Im);
@@ -70,39 +74,33 @@ bg = plotDispersionCurveNetwork(w0,v0,M,[],k);
 % addBandGaps(bg,Ut)
 
 % analytical estimation of perturbed dispersion curve
-dL = dot(dX(T(:,1),:)-dX(T(:,2),:),Xref(T(:,1),:)-Xref(T(:,2),:),2)./(L0.^2);
-dL = reshape(dL,[1 1 length(dL)]);
-dphi = cross2(Xref(T(:,1),:)-Xref(T(:,2),:),dX(T(:,1),:)-dX(T(:,2),:),2)./(L0.^2);
-dphi = reshape(dphi,[1 1 length(dphi)]);
 dK = dKr.*dphi + dKl.*dL;
 dM = dMr.*dphi + dMl.*dL;
 dw = zeros(nm,nk);
+dv = zeros(size(vref));
 for i1 = 1:nk
+    indrep = find(diff(wref(:,i1))<1e-3*mean(diff(wref(:,i1))));
+    if any(indrep)
+        v1dKv1 = real(diag(proj2(vref(:,indrep,i1),dK,vref(:,indrep,i1),indg)));
+        v1dKv2 = real(diag(proj2(vref(:,indrep,i1),dK,vref(:,indrep+1,i1),indg)));
+        v2dKv2 = real(diag(proj2(vref(:,indrep+1,i1),dK,vref(:,indrep+1,i1),indg)));
+        v1dMv1 = real(diag(proj2(vref(:,indrep,i1),dM,vref(:,indrep,i1),indg)));
+        v1dMv2 = real(diag(proj2(vref(:,indrep,i1),dM,vref(:,indrep+1,i1),indg)));
+        v2dMv2 = real(diag(proj2(vref(:,indrep+1,i1),dM,vref(:,indrep+1,i1),indg)));
+        theta = 2*(v1dKv2-wref(indrep,i1).^2.*v1dMv2) ...
+            ./((v1dKv1-v2dKv2)-wref(indrep,i1).^2.*(v1dMv1-v2dMv2));
+        theta = atan(theta);
+        v1 =  cos(theta)'.*vref(:,indrep,i1) + sin(theta)'.*vref(:,indrep+1,i1);
+        v2 = -sin(theta)'.*vref(:,indrep,i1) + cos(theta)'.*vref(:,indrep+1,i1);
+        vref(:,indrep,i1) = v1;
+        vref(:,indrep+1,i1) = v2;
+    end
     vdKv = real(proj2(vref(:,:,i1),dK,vref(:,:,i1),indg));
     vdMv = real(proj2(vref(:,:,i1),dM,vref(:,:,i1),indg));
-    dw(:,i1) = (vdKv-((wref(:,i1).^2).*vdMv))./(2*wref(:,i1));
+    dw(:,i1) = (diag(vdKv)-((wref(:,i1).^2).*diag(vdMv)))./(2*wref(:,i1));
+    alpha = (vdKv-((wref(:,i1).^2).*vdMv))./(wref(:,i1).^2-wref(:,i1)'.^2);
+    alpha = alpha -diag(alpha) -(diag(vdMv)/2);
+    dv(:,:,i1) = vref(:,:,i1)*alpha;
 end
-[w0(:,10)-wref(:,10) dw(:,10)]
-% for i1 = [1 nk]
-%     i1
-%     indrep = find(diff(wref(:,i1))<1e-3*mean(diff(wref(:,i1))));
-%     v1dKv1 = real(proj2(vref(:,indrep,i1),dK,vref(:,indrep,i1),indg));
-%     v1dKv2 = real(proj2(vref(:,indrep,i1),dK,vref(:,indrep+1,i1),indg));
-%     v2dKv2 = real(proj2(vref(:,indrep+1,i1),dK,vref(:,indrep+1,i1),indg));
-%     v1dMv1 = real(proj2(vref(:,indrep,i1),dM,vref(:,indrep,i1),indg));
-%     v1dMv2 = real(proj2(vref(:,indrep,i1),dM,vref(:,indrep+1,i1),indg));
-%     v2dMv2 = real(proj2(vref(:,indrep+1,i1),dM,vref(:,indrep+1,i1),indg));
-%     theta = 2*(v1dKv2-wref(indrep,i1).^2.*v1dMv2) ...
-%                    ./((v1dKv1-v2dKv2)-wref(indrep,i1).^2.*(v1dMv1-v2dMv2));
-%     theta = atan(theta);
-%     dw(indrep,i1) = (cos(theta).^2.*(v1dKv1-wref(indrep,i1).^2.*v1dMv1) ...
-%                     +sin(theta).^2.*(v2dKv2-wref(indrep,i1).^2.*v2dMv2) ...
-%        +2*cos(theta).*sin(theta).*(v1dKv2-wref(indrep,i1).^2.*v1dMv2)) ...
-%                                                      ./(2*wref(indrep,i1));
-%     dw(indrep+1,i1) = (sin(theta).^2.*(v1dKv1-wref(indrep,i1).^2.*v1dMv1) ...
-%                     +cos(theta).^2.*(v2dKv2-wref(indrep,i1).^2.*v2dMv2) ...
-%        -2*cos(theta).*sin(theta).*(v1dKv2-wref(indrep,i1).^2.*v1dMv2)) ...
-%                                                      ./(2*wref(indrep,i1));
-% end
-plotDispersionCurveNetwork(wref+dw,vref,M,[],k);
+plotDispersionCurveNetwork(wref+dw,vref+dv,M,[],k);
 
